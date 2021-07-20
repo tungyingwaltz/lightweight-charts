@@ -1,4 +1,4 @@
-import { CanvasElementBitmapSizeBinding } from 'fancy-canvas';
+import { CanvasElementBitmapSizeBinding, equalSizes, Size, size } from 'fancy-canvas';
 
 import { clearRect, drawScaled } from '../helpers/canvas-helpers';
 import { IDestroyable } from '../helpers/idestroyable';
@@ -7,7 +7,7 @@ import { ChartOptionsInternal } from '../model/chart-model';
 import { InvalidationLevel } from '../model/invalidate-mask';
 import { PriceAxisRendererOptionsProvider } from '../renderers/price-axis-renderer-options-provider';
 
-import { createBoundCanvas, getContext2D, Size } from './canvas-utils';
+import { createBoundCanvas, getContext2D } from './canvas-utils';
 import { PriceAxisWidgetSide } from './price-axis-widget';
 
 export interface PriceAxisStubParams {
@@ -27,7 +27,7 @@ export class PriceAxisStub implements IDestroyable {
 	private _invalidated: boolean = true;
 
 	private readonly _isLeft: boolean;
-	private _size: Size = new Size(0, 0);
+	private _size: Size = size({ width: 0, height: 0 });
 	private readonly _borderVisible: BorderVisibleGetter;
 
 	public constructor(
@@ -47,7 +47,7 @@ export class PriceAxisStub implements IDestroyable {
 		this._cell.style.height = '100%';
 		this._cell.style.overflow = 'hidden';
 
-		this._canvasBinding = createBoundCanvas(this._cell, new Size(16, 16));
+		this._canvasBinding = createBoundCanvas(this._cell, size({ width: 16, height: 16 }));
 		this._canvasBinding.subscribeBitmapSizeChanged(this._canvasBitmapSizeChangedHandler);
 	}
 
@@ -60,23 +60,19 @@ export class PriceAxisStub implements IDestroyable {
 		return this._cell;
 	}
 
-	public getSize(): Readonly<Size> {
+	public getSize(): Size {
 		return this._size;
 	}
 
-	public setSize(size: Size): void {
-		if (size.w < 0 || size.h < 0) {
-			throw new Error('Try to set invalid size to PriceAxisStub ' + JSON.stringify(size));
-		}
+	public setSize(newSize: Size): void {
+		if (!equalSizes(this._size, newSize)) {
+			this._size = newSize;
 
-		if (!this._size.equals(size)) {
-			this._size = size;
+			this._canvasBinding.resizeCanvasElement(newSize);
 
-			this._canvasBinding.resizeCanvasElement({ width: size.w, height: size.h });
-
-			this._cell.style.width = `${size.w}px`;
-			this._cell.style.minWidth = `${size.w}px`; // for right calculate position of .pane-legend
-			this._cell.style.height = `${size.h}px`;
+			this._cell.style.width = `${newSize.width}px`;
+			this._cell.style.minWidth = `${newSize.width}px`; // for right calculate position of .pane-legend
+			this._cell.style.height = `${newSize.height}px`;
 
 			this._invalidated = true;
 		}
@@ -87,7 +83,7 @@ export class PriceAxisStub implements IDestroyable {
 			return;
 		}
 
-		if (this._size.w === 0 || this._size.h === 0) {
+		if (this._size.width === 0 || this._size.height === 0) {
 			return;
 		}
 
@@ -109,7 +105,7 @@ export class PriceAxisStub implements IDestroyable {
 		if (!this._borderVisible()) {
 			return;
 		}
-		const width = this._size.w;
+		const width = this._size.width;
 
 		ctx.save();
 
@@ -125,7 +121,7 @@ export class PriceAxisStub implements IDestroyable {
 
 	private _drawBackground(ctx: CanvasRenderingContext2D, pixelRatio: number): void {
 		drawScaled(ctx, pixelRatio, () => {
-			clearRect(ctx, 0, 0, this._size.w, this._size.h, this._options.layout.backgroundColor);
+			clearRect(ctx, 0, 0, this._size.width, this._size.height, this._options.layout.backgroundColor);
 		});
 	}
 

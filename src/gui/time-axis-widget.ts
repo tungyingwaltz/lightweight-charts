@@ -1,4 +1,4 @@
-import { CanvasElementBitmapSizeBinding } from 'fancy-canvas';
+import { CanvasElementBitmapSizeBinding, equalSizes, Size, size } from 'fancy-canvas';
 
 import { clearRect, drawScaled } from '../helpers/canvas-helpers';
 import { IDestroyable } from '../helpers/idestroyable';
@@ -12,7 +12,7 @@ import { TextWidthCache } from '../model/text-width-cache';
 import { TimeMark } from '../model/time-scale';
 import { TimeAxisViewRendererOptions } from '../renderers/itime-axis-view-renderer';
 
-import { createBoundCanvas, getContext2D, Size } from './canvas-utils';
+import { createBoundCanvas, getContext2D } from './canvas-utils';
 import { ChartWidget } from './chart-widget';
 import { MouseEventHandler, MouseEventHandlers, TouchMouseEvent } from './mouse-event-handler';
 import { PriceAxisStub, PriceAxisStubParams } from './price-axis-stub';
@@ -46,7 +46,7 @@ export class TimeAxisWidget implements MouseEventHandlers, IDestroyable {
 	private readonly _mouseEventHandler: MouseEventHandler;
 	private _rendererOptions: TimeAxisViewRendererOptions | null = null;
 	private _mouseDown: boolean = false;
-	private _size: Size = new Size(0, 0);
+	private _size: Size = size({ width: 0, height: 0 });
 
 	public constructor(chartWidget: ChartWidget) {
 		this._chart = chartWidget;
@@ -71,7 +71,7 @@ export class TimeAxisWidget implements MouseEventHandlers, IDestroyable {
 		this._dv.style.overflow = 'hidden';
 		this._cell.appendChild(this._dv);
 
-		this._canvasBinding = createBoundCanvas(this._dv, new Size(16, 16));
+		this._canvasBinding = createBoundCanvas(this._dv, size({ width: 16, height: 16 }));
 		this._canvasBinding.subscribeBitmapSizeChanged(this._canvasBitmapSizeChangedHandler);
 		const canvas = this._canvasBinding.canvasElement;
 		canvas.style.position = 'absolute';
@@ -79,7 +79,7 @@ export class TimeAxisWidget implements MouseEventHandlers, IDestroyable {
 		canvas.style.left = '0';
 		canvas.style.top = '0';
 
-		this._topCanvasBinding = createBoundCanvas(this._dv, new Size(16, 16));
+		this._topCanvasBinding = createBoundCanvas(this._dv, size({ width: 16, height: 16 }));
 		this._topCanvasBinding.subscribeBitmapSizeChanged(this._topCanvasBitmapSizeChangedHandler);
 		const topCanvas = this._topCanvasBinding.canvasElement;
 		topCanvas.style.position = 'absolute';
@@ -191,26 +191,26 @@ export class TimeAxisWidget implements MouseEventHandlers, IDestroyable {
 		this._setCursor(CursorType.Default);
 	}
 
-	public getSize(): Readonly<Size> {
+	public getSize(): Size {
 		return this._size;
 	}
 
 	public setSizes(timeAxisSize: Size, leftStubWidth: number, rightStubWidth: number): void {
-		if (!this._size || !this._size.equals(timeAxisSize)) {
+		if (!equalSizes(this._size, timeAxisSize)) {
 			this._size = timeAxisSize;
 
-			this._canvasBinding.resizeCanvasElement({ width: timeAxisSize.w, height: timeAxisSize.h });
-			this._topCanvasBinding.resizeCanvasElement({ width: timeAxisSize.w, height: timeAxisSize.h });
+			this._canvasBinding.resizeCanvasElement(timeAxisSize);
+			this._topCanvasBinding.resizeCanvasElement(timeAxisSize);
 
-			this._cell.style.width = timeAxisSize.w + 'px';
-			this._cell.style.height = timeAxisSize.h + 'px';
+			this._cell.style.width = `${timeAxisSize.width}px`;
+			this._cell.style.height = `${timeAxisSize.height}px`;
 		}
 
 		if (this._leftStub !== null) {
-			this._leftStub.setSize(new Size(leftStubWidth, timeAxisSize.h));
+			this._leftStub.setSize(size({ width: leftStubWidth, height: timeAxisSize.height }));
 		}
 		if (this._rightStub !== null) {
-			this._rightStub.setSize(new Size(rightStubWidth, timeAxisSize.h));
+			this._rightStub.setSize(size({ width: rightStubWidth, height: timeAxisSize.height }));
 		}
 	}
 
@@ -262,13 +262,13 @@ export class TimeAxisWidget implements MouseEventHandlers, IDestroyable {
 		const topCtx = getContext2D(this._topCanvasBinding.canvasElement);
 		const topCanvasPixelRatio = this._topCanvasBinding.bitmapSize.width / this._topCanvasBinding.canvasElementClientSize.width;
 
-		topCtx.clearRect(0, 0, Math.ceil(this._size.w * topCanvasPixelRatio), Math.ceil(this._size.h * topCanvasPixelRatio));
+		topCtx.clearRect(0, 0, Math.ceil(this._size.width * topCanvasPixelRatio), Math.ceil(this._size.height * topCanvasPixelRatio));
 		this._drawLabels([this._chart.model().crosshairSource()], topCtx, topCanvasPixelRatio);
 	}
 
 	private _drawBackground(ctx: CanvasRenderingContext2D, pixelRatio: number): void {
 		drawScaled(ctx, pixelRatio, () => {
-			clearRect(ctx, 0, 0, this._size.w, this._size.h, this._backgroundColor());
+			clearRect(ctx, 0, 0, this._size.width, this._size.height, this._backgroundColor());
 		});
 	}
 
@@ -280,7 +280,7 @@ export class TimeAxisWidget implements MouseEventHandlers, IDestroyable {
 
 			const borderSize = Math.max(1, Math.floor(this._getRendererOptions().borderSize * pixelRatio));
 
-			ctx.fillRect(0, 0, Math.ceil(this._size.w * pixelRatio), borderSize);
+			ctx.fillRect(0, 0, Math.ceil(this._size.width * pixelRatio), borderSize);
 			ctx.restore();
 		}
 	}

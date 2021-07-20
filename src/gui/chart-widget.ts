@@ -1,3 +1,5 @@
+import { size } from 'fancy-canvas';
+
 import { ensureDefined, ensureNotNull } from '../helpers/assertions';
 import { drawScaled } from '../helpers/canvas-helpers';
 import { Delegate } from '../helpers/delegate';
@@ -19,7 +21,7 @@ import { PriceAxisPosition } from '../model/price-scale';
 import { Series } from '../model/series';
 import { TimePoint, TimePointIndex } from '../model/time-data';
 
-import { createPreconfiguredCanvas, getCanvasDevicePixelRatio, getContext2D, Size } from './canvas-utils';
+import { createPreconfiguredCanvas, getCanvasDevicePixelRatio, getContext2D } from './canvas-utils';
 // import { PaneSeparator, SEPARATOR_HEIGHT } from './pane-separator';
 import { PaneWidget } from './pane-widget';
 import { TimeAxisWidget } from './time-axis-widget';
@@ -217,7 +219,10 @@ export class ChartWidget implements IDestroyable {
 		}
 		// calculate target size
 		const firstPane = this._paneWidgets[0];
-		const targetCanvas = createPreconfiguredCanvas(document, new Size(this._width, this._height));
+		const targetCanvas = createPreconfiguredCanvas(
+			document,
+			size({ width: this._width, height: this._height })
+		);
 		const ctx = getContext2D(targetCanvas);
 		const pixelRatio = getCanvasDevicePixelRatio(targetCanvas);
 		drawScaled(ctx, pixelRatio, () => {
@@ -227,7 +232,7 @@ export class ChartWidget implements IDestroyable {
 			const drawPriceAxises = (position: PriceAxisPosition) => {
 				for (let paneIndex = 0; paneIndex < this._paneWidgets.length; paneIndex++) {
 					const paneWidget = this._paneWidgets[paneIndex];
-					const paneWidgetHeight = paneWidget.getSize().h;
+					const paneWidgetHeight = paneWidget.getSize().height;
 					const priceAxisWidget = ensureNotNull(position === 'left' ? paneWidget.leftPriceAxisWidget() : paneWidget.rightPriceAxisWidget());
 					const image = priceAxisWidget.getImage();
 					ctx.drawImage(image, targetX, targetY, priceAxisWidget.getWidth(), paneWidgetHeight);
@@ -251,8 +256,8 @@ export class ChartWidget implements IDestroyable {
 				const paneWidget = this._paneWidgets[paneIndex];
 				const paneWidgetSize = paneWidget.getSize();
 				const image = paneWidget.getImage();
-				ctx.drawImage(image, targetX, targetY, paneWidgetSize.w, paneWidgetSize.h);
-				targetY += paneWidgetSize.h;
+				ctx.drawImage(image, targetX, targetY, paneWidgetSize.width, paneWidgetSize.height);
+				targetY += paneWidgetSize.height;
 				// if (paneIndex < this._paneWidgets.length - 1) {
 				// 	const separator = this._paneSeparators[paneIndex];
 				// 	const separatorSize = separator.getSize();
@@ -261,16 +266,16 @@ export class ChartWidget implements IDestroyable {
 				// 	targetY += separatorSize.h;
 				// }
 			}
-			targetX += firstPane.getSize().w;
+			targetX += firstPane.getSize().width;
 			if (this._isRightAxisVisible()) {
 				targetY = 0;
 				drawPriceAxises('right');
 			}
 			const drawStub = (position: PriceAxisPosition) => {
 				const stub = ensureNotNull(position === 'left' ? this._timeAxisWidget.leftStub() : this._timeAxisWidget.rightStub());
-				const size = stub.getSize();
-				const image = stub.getImage();
-				ctx.drawImage(image, targetX, targetY, size.w, size.h);
+				const stubSize = stub.getSize();
+				const stubImage = stub.getImage();
+				ctx.drawImage(stubImage, targetX, targetY, stubSize.width, stubSize.height);
 			};
 			// draw time scale
 			if (this._options.timeScale.visible) {
@@ -279,11 +284,11 @@ export class ChartWidget implements IDestroyable {
 					drawStub('left');
 					targetX = ensureNotNull(firstPane.leftPriceAxisWidget()).getWidth();
 				}
-				const size = this._timeAxisWidget.getSize();
-				const image = this._timeAxisWidget.getImage();
-				ctx.drawImage(image, targetX, targetY, size.w, size.h);
+				const timeAxisSize = this._timeAxisWidget.getSize();
+				const timeAxisImage = this._timeAxisWidget.getImage();
+				ctx.drawImage(timeAxisImage, targetX, targetY, timeAxisSize.width, timeAxisSize.height);
 				if (this._isRightAxisVisible()) {
-					targetX = firstPane.getSize().w;
+					targetX = firstPane.getSize().width;
 					drawStub('right');
 					ctx.restore();
 				}
@@ -371,7 +376,7 @@ export class ChartWidget implements IDestroyable {
 
 			accumulatedHeight += paneHeight;
 
-			paneWidget.setSize(new Size(paneWidth, paneHeight));
+			paneWidget.setSize(size({ width: paneWidth, height: paneHeight }));
 			if (this._isLeftAxisVisible()) {
 				paneWidget.setPriceAxisSize(leftPriceAxisWidth, 'left');
 			}
@@ -385,7 +390,7 @@ export class ChartWidget implements IDestroyable {
 		}
 
 		this._timeAxisWidget.setSizes(
-			new Size(paneWidth, timeAxisHeight),
+			size({ width: paneWidth, height: timeAxisHeight }),
 			leftPriceAxisWidth,
 			rightPriceAxisWidth
 		);
