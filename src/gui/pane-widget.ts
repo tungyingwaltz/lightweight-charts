@@ -1,7 +1,7 @@
 import { CanvasElementBitmapSizeBinding, equalSizes, Size, size } from 'fancy-canvas';
 
 import { ensureNotNull } from '../helpers/assertions';
-import { clearRect, drawScaled } from '../helpers/canvas-helpers';
+import { clearRect } from '../helpers/canvas-helpers';
 import { Delegate } from '../helpers/delegate';
 import { IDestroyable } from '../helpers/idestroyable';
 import { ISubscription } from '../helpers/isubscription';
@@ -14,6 +14,7 @@ import { IPriceDataSource } from '../model/iprice-data-source';
 import { Pane } from '../model/pane';
 import { Point } from '../model/point';
 import { TimePointIndex } from '../model/time-data';
+import { CanvasRenderingParams, getCanvasRenderingParams } from '../renderers/render-params';
 import { IPaneView } from '../views/pane/ipane-view';
 
 import { createBoundCanvas, getContext2D } from './canvas-utils';
@@ -500,20 +501,20 @@ export class PaneWidget implements IDestroyable {
 		if (type !== InvalidationLevel.Cursor) {
 			const ctx = getContext2D(this._canvasBinding.canvasElement);
 			ctx.save();
-			const canvasPixelRatio = this._canvasBinding.bitmapSize.width / this._canvasBinding.canvasElementClientSize.width;
-			this._drawBackground(ctx, this._backgroundColor(), canvasPixelRatio);
+			const canvasRenderingParams = getCanvasRenderingParams(this._canvasBinding);
+			this._drawBackground(ctx, this._backgroundColor(), canvasRenderingParams);
 			if (this._state) {
-				this._drawGrid(ctx, canvasPixelRatio);
-				this._drawWatermark(ctx, canvasPixelRatio);
-				this._drawSources(ctx, canvasPixelRatio);
+				this._drawGrid(ctx, canvasRenderingParams);
+				this._drawWatermark(ctx, canvasRenderingParams);
+				this._drawSources(ctx, canvasRenderingParams);
 			}
 			ctx.restore();
 		}
 
-		const topCanvasPixelRatio = this._topCanvasBinding.bitmapSize.width / this._topCanvasBinding.canvasElementClientSize.width;
+		const topCanvasRenderingParams = getCanvasRenderingParams(this._topCanvasBinding);
 		const topCtx = getContext2D(this._topCanvasBinding.canvasElement);
-		topCtx.clearRect(0, 0, Math.ceil(this._size.width * topCanvasPixelRatio), Math.ceil(this._size.height * topCanvasPixelRatio));
-		this._drawCrosshair(topCtx, topCanvasPixelRatio);
+		topCtx.clearRect(0, 0, topCanvasRenderingParams.bitmapSize.width, topCanvasRenderingParams.bitmapSize.height);
+		this._drawCrosshair(topCtx, topCanvasRenderingParams);
 	}
 
 	public leftPriceAxisWidget(): PriceAxisWidget | null {
@@ -536,48 +537,47 @@ export class PaneWidget implements IDestroyable {
 		this._state = null;
 	}
 
-	private _drawBackground(ctx: CanvasRenderingContext2D, color: string, pixelRatio: number): void {
-		drawScaled(ctx, pixelRatio, () => {
-			clearRect(ctx, 0, 0, this._size.width, this._size.height, color);
-		});
+	private _drawBackground(ctx: CanvasRenderingContext2D, color: string, renderingParams: CanvasRenderingParams): void {
+		const bitmapSize = renderingParams.bitmapSize;
+		clearRect(ctx, 0, 0, bitmapSize.width, bitmapSize.height, color);
 	}
 
-	private _drawGrid(ctx: CanvasRenderingContext2D, pixelRatio: number): void {
+	private _drawGrid(ctx: CanvasRenderingContext2D, renderingParams: CanvasRenderingParams): void {
 		const state = ensureNotNull(this._state);
 		const paneView = state.grid().paneView();
 		const renderer = paneView.renderer(state.height(), state.width());
 
 		if (renderer !== null) {
 			ctx.save();
-			renderer.draw(ctx, pixelRatio, false);
+			renderer.draw(ctx, renderingParams, false);
 			ctx.restore();
 		}
 	}
 
-	private _drawWatermark(ctx: CanvasRenderingContext2D, pixelRatio: number): void {
+	private _drawWatermark(ctx: CanvasRenderingContext2D, renderingParams: CanvasRenderingParams): void {
 		const source = this._model().watermarkSource();
-		this._drawSourceBackground(source, ctx, pixelRatio);
-		this._drawSource(source, ctx, pixelRatio);
+		this._drawSourceBackground(source, ctx, renderingParams);
+		this._drawSource(source, ctx, renderingParams);
 	}
 
-	private _drawCrosshair(ctx: CanvasRenderingContext2D, pixelRatio: number): void {
-		this._drawSource(this._model().crosshairSource(), ctx, pixelRatio);
+	private _drawCrosshair(ctx: CanvasRenderingContext2D, renderingParams: CanvasRenderingParams): void {
+		this._drawSource(this._model().crosshairSource(), ctx, renderingParams);
 	}
 
-	private _drawSources(ctx: CanvasRenderingContext2D, pixelRatio: number): void {
+	private _drawSources(ctx: CanvasRenderingContext2D, renderingParams: CanvasRenderingParams): void {
 		const state = ensureNotNull(this._state);
 		const sources = state.orderedSources();
 
 		for (const source of sources) {
-			this._drawSourceBackground(source, ctx, pixelRatio);
+			this._drawSourceBackground(source, ctx, renderingParams);
 		}
 
 		for (const source of sources) {
-			this._drawSource(source, ctx, pixelRatio);
+			this._drawSource(source, ctx, renderingParams);
 		}
 	}
 
-	private _drawSource(source: IDataSource, ctx: CanvasRenderingContext2D, pixelRatio: number): void {
+	private _drawSource(source: IDataSource, ctx: CanvasRenderingContext2D, renderingParams: CanvasRenderingParams): void {
 		const state = ensureNotNull(this._state);
 		const paneViews = source.paneViews(state);
 		const height = state.height();
@@ -592,13 +592,13 @@ export class PaneWidget implements IDestroyable {
 			const renderer = paneView.renderer(height, width);
 			if (renderer !== null) {
 				ctx.save();
-				renderer.draw(ctx, pixelRatio, isHovered, objecId);
+				renderer.draw(ctx, renderingParams, isHovered, objecId);
 				ctx.restore();
 			}
 		}
 	}
 
-	private _drawSourceBackground(source: IDataSource, ctx: CanvasRenderingContext2D, pixelRatio: number): void {
+	private _drawSourceBackground(source: IDataSource, ctx: CanvasRenderingContext2D, renderingParams: CanvasRenderingParams): void {
 		const state = ensureNotNull(this._state);
 		const paneViews = source.paneViews(state);
 		const height = state.height();
@@ -613,7 +613,7 @@ export class PaneWidget implements IDestroyable {
 			const renderer = paneView.renderer(height, width);
 			if (renderer !== null && renderer.drawBackground !== undefined) {
 				ctx.save();
-				renderer.drawBackground(ctx, pixelRatio, isHovered, objecId);
+				renderer.drawBackground(ctx, renderingParams, isHovered, objecId);
 				ctx.restore();
 			}
 		}
