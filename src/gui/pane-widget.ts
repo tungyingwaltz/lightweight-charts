@@ -582,6 +582,10 @@ export class PaneWidget implements IDestroyable {
 		return this._leftPriceAxisWidget;
 	}
 
+	public getPaneCell(): HTMLElement {
+		return this._paneCell;
+	}
+
 	public rightPriceAxisWidget(): PriceAxisWidget | null {
 		return this._rightPriceAxisWidget;
 	}
@@ -611,7 +615,7 @@ export class PaneWidget implements IDestroyable {
 	private _drawGrid(ctx: CanvasRenderingContext2D, pixelRatio: number): void {
 		const state = ensureNotNull(this._state);
 		const paneView = state.grid().paneView();
-		const renderer = paneView.renderer(state.height(), state.width());
+		const renderer = paneView.renderer(state.height(), state.width(), state);
 
 		if (renderer !== null) {
 			ctx.save();
@@ -661,18 +665,41 @@ export class PaneWidget implements IDestroyable {
 			: undefined;
 
 		for (const paneView of paneViews) {
-			const renderer = paneView.renderer(height, width);
+			const renderer = paneView.renderer(height, width, state);
 			if (renderer !== null) {
 				ctx.save();
 				drawFn(renderer, ctx, pixelRatio, isHovered, objecId);
+				// renderer.draw(ctx, pixelRatio, isHovered, objecId);
 				ctx.restore();
 			}
 		}
 	}
 
+	// private _drawSourceBackground(source: IDataSource, ctx: CanvasRenderingContext2D, pixelRatio: number): void {
+	// 	const state = ensureNotNull(this._state);
+	// 	const paneViews = source.paneViews(state);
+	// 	const height = state.height();
+	// 	const width = state.width();
+	// 	const hoveredSource = state.model().hoveredSource();
+	// 	const isHovered = hoveredSource !== null && hoveredSource.source === source;
+	// 	const objecId = hoveredSource !== null && isHovered && hoveredSource.object !== undefined
+	// 		? hoveredSource.object.hitTestData
+	// 		: undefined;
+
+	// 	for (const paneView of paneViews) {
+	// 		const renderer = paneView.renderer(height, width, state);
+	// 		if (renderer !== null && renderer.drawBackground !== undefined) {
+	// 			ctx.save();
+	// 			renderer.drawBackground(ctx, pixelRatio, isHovered, objecId);
+	// 			ctx.restore();
+	// 		}
+	// 	}
+	// }
+
 	private _hitTestPaneView(paneViews: readonly IPaneView[], x: Coordinate, y: Coordinate): HitTestPaneViewResult | null {
+		const state = ensureNotNull(this._state);
 		for (const paneView of paneViews) {
-			const renderer = paneView.renderer(this._size.h, this._size.w);
+			const renderer = paneView.renderer(this._size.h, this._size.w, state);
 			if (renderer !== null && renderer.hitTest) {
 				const result = renderer.hitTest(x, y);
 				if (result !== null) {
