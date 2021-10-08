@@ -24,6 +24,7 @@ import { ITimeScaleApi } from './itime-scale-api';
 export interface MouseEventParams {
 	time?: UTCTimestamp | BusinessDay;
 	point?: Point;
+	paneIndex?: number;
 	seriesPrices: Map<ISeriesApi<SeriesType>, BarPrice | BarPrices>;
 	hoveredSeries?: ISeriesApi<SeriesType>;
 	hoveredMarkerId?: SeriesMarker<Time>['id'];
