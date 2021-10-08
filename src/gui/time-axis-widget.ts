@@ -10,6 +10,7 @@ import { LayoutOptionsInternal } from '../model/layout-options';
 import { TextWidthCache } from '../model/text-width-cache';
 import { TimeMark } from '../model/time-scale';
 import { TimeAxisViewRendererOptions } from '../renderers/itime-axis-view-renderer';
+import { ITimeAxisView } from '../views/time-axis/itime-axis-view';
 
 import { createBoundCanvas, getContext2D, Size } from './canvas-utils';
 import { ChartWidget } from './chart-widget';
@@ -262,6 +263,7 @@ export class TimeAxisWidget implements MouseEventHandlers, IDestroyable {
 		const pixelRatio = this._topCanvasBinding.pixelRatio;
 
 		topCtx.clearRect(0, 0, Math.ceil(this._size.w * pixelRatio), Math.ceil(this._size.h * pixelRatio));
+		this._drawLabelsOfTimeAxisView(this._chart.model().customTimeAxisViews(), topCtx, pixelRatio);
 		this._drawLabels([this._chart.model().crosshairSource()], topCtx, pixelRatio);
 	}
 
@@ -373,6 +375,15 @@ export class TimeAxisWidget implements MouseEventHandlers, IDestroyable {
 				view.renderer().draw(ctx, rendererOptions, pixelRatio);
 				ctx.restore();
 			}
+		}
+	}
+
+	private _drawLabelsOfTimeAxisView(timeAxisViews: readonly ITimeAxisView[], ctx: CanvasRenderingContext2D, pixelRatio: number): void {
+		const rendererOptions = this._getRendererOptions();
+		for (const view of timeAxisViews) {
+			ctx.save();
+			view.renderer().draw(ctx, rendererOptions, pixelRatio);
+			ctx.restore();
 		}
 	}
 

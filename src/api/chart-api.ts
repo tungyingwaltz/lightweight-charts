@@ -27,6 +27,7 @@ import {
 	PriceFormatBuiltIn,
 	SeriesType,
 } from '../model/series-options';
+import { TimeLineOptions } from '../model/time-line-options';
 
 import { CandlestickSeriesApi } from './candlestick-series-api';
 import { DataUpdatesConsumer, SeriesDataItemTypeMap } from './data-consumer';
@@ -34,6 +35,7 @@ import { DataLayer, DataUpdateResponse, SeriesChanges } from './data-layer';
 import { IChartApi, MouseEventHandler, MouseEventParams } from './ichart-api';
 import { IPriceScaleApi } from './iprice-scale-api';
 import { ISeriesApi } from './iseries-api';
+import { ITimeLine } from './itime-line';
 import { ITimeScaleApi } from './itime-scale-api';
 import { chartOptionsDefaults } from './options/chart-options-defaults';
 import {
@@ -44,8 +46,10 @@ import {
 	lineStyleDefaults,
 	seriesOptionsDefaults,
 } from './options/series-options-defaults';
+import { timeLineOptionsDefaults } from './options/time-line-options-defaults';
 import { PriceScaleApi } from './price-scale-api';
 import { migrateOptions, SeriesApi } from './series-api';
+import { TimeLine } from './time-line-api';
 import { TimeScaleApi } from './time-scale-api';
 
 function patchPriceFormat(priceFormat?: DeepPartial<PriceFormat>): void {
@@ -350,6 +354,16 @@ export class ChartApi implements IChartApi, DataUpdatesConsumer<SeriesType> {
 
 	public getPaneElements(): HTMLElement[] {
 		return this._chartWidget.paneWidgets().map((paneWidget: PaneWidget) => paneWidget.getPaneCell());
+	}
+
+	public createTimeLine(options: TimeLineOptions): ITimeLine {
+		const strictOptions = merge(clone(timeLineOptionsDefaults), options) as TimeLineOptions;
+		const timeLine = this._chartWidget.model().createTimeLine(strictOptions);
+		return new TimeLine(timeLine);
+	}
+
+	public removeTimeLine(line: ITimeLine): void {
+		this._chartWidget.model().removeTimeLine((line as TimeLine).timeLine());
 	}
 
 	private _sendUpdateToChart(update: DataUpdateResponse): void {

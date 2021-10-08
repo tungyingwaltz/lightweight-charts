@@ -13,10 +13,12 @@ import {
 	SeriesType,
 } from '../model/series-options';
 import { BusinessDay, UTCTimestamp } from '../model/time-data';
+import { TimeLineOptions } from '../model/time-line-options';
 
 import { Time } from './data-consumer';
 import { IPriceScaleApi } from './iprice-scale-api';
 import { ISeriesApi } from './iseries-api';
+import { ITimeLine } from './itime-line';
 import { ITimeScaleApi } from './itime-scale-api';
 
 export interface MouseEventParams {
@@ -172,4 +174,18 @@ export interface IChartApi {
 	swapPane(first: number, second: number): void;
 
 	getPaneElements(): HTMLElement[];
+
+	/**
+	 * Creates a new time line
+	 *
+	 * @param options - any subset of options
+	 */
+	createTimeLine(options: TimeLineOptions): ITimeLine;
+
+	/**
+	 * Removes an existing time line
+	 *
+	 * @param line - to remove
+	 */
+	removeTimeLine(line: ITimeLine): void;
 }

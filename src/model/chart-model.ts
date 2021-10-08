@@ -9,9 +9,11 @@ import { DeepPartial, merge } from '../helpers/strict-type-checks';
 
 import { PriceAxisViewRendererOptions } from '../renderers/iprice-axis-view-renderer';
 import { PriceAxisRendererOptionsProvider } from '../renderers/price-axis-renderer-options-provider';
+import { CustomTimeLineTimeAxisView } from '../views/time-axis/custom-time-line-time-axis-view';
 
 import { Coordinate } from './coordinate';
 import { Crosshair, CrosshairOptions } from './crosshair';
+import { CustomTimeLine } from './custom-time-line';
 import { DefaultPriceScaleId, isDefaultPriceScale } from './default-price-scale';
 import { GridOptions } from './grid';
 import { InvalidateMask, InvalidationLevel } from './invalidate-mask';
@@ -25,6 +27,7 @@ import { PriceScale, PriceScaleOptions } from './price-scale';
 import { Series, SeriesOptionsInternal } from './series';
 import { SeriesOptionsMap, SeriesType } from './series-options';
 import { LogicalRange, TimePointIndex, TimeScalePoint } from './time-data';
+import { TimeLineOptions } from './time-line-options';
 import { TimeScale, TimeScaleOptions } from './time-scale';
 import { Watermark, WatermarkOptions } from './watermark';
 
@@ -154,6 +157,7 @@ export class ChartModel implements IDestroyable {
 	private readonly _crosshair: Crosshair;
 	private readonly _magnet: Magnet;
 	private readonly _watermark: Watermark;
+	private readonly _customTimeLines: CustomTimeLine[] = [];
 
 	private _serieses: Series[] = [];
 
@@ -292,6 +296,12 @@ export class ChartModel implements IDestroyable {
 
 	public crosshairMoved(): ISubscription<TimePointIndex | null, Point | null> {
 		return this._crosshairMoved;
+	}
+
+	public customTimeAxisViews(): CustomTimeLineTimeAxisView[] {
+		return this._customTimeLines.map((item: CustomTimeLine) => {
+			return item.timeAxisView();
+		});
 	}
 
 	public setPaneHeight(pane: Pane, height: number): void {
@@ -760,6 +770,27 @@ export class ChartModel implements IDestroyable {
 		const result = gradientColorAtPercent(topColor, bottomColor, percent / 100);
 		this._gradientColorsCache.colors.set(percent, result);
 		return result;
+	}
+
+	public createTimeLine(options: TimeLineOptions): CustomTimeLine {
+		const result = new CustomTimeLine(this, options);
+		this._customTimeLines.push(result);
+		for (const item of this._serieses) {
+			item.updateTimeLine(this._customTimeLines);
+		}
+		this.lightUpdate();
+		return result;
+	}
+
+	public removeTimeLine(line: CustomTimeLine): void {
+		const index = this._customTimeLines.indexOf(line);
+		if (index !== -1) {
+			this._customTimeLines.splice(index, 1);
+		}
+		for (const item of this._serieses) {
+			item.updateTimeLine(this._customTimeLines);
+		}
+		this.lightUpdate();
 	}
 
 	private _paneInvalidationMask(pane: Pane | null, level: InvalidationLevel): InvalidateMask {

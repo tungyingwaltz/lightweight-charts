@@ -27,6 +27,7 @@ import { BarPrice, BarPrices } from './bar';
 import { ChartModel } from './chart-model';
 import { Coordinate } from './coordinate';
 import { CustomPriceLine } from './custom-price-line';
+import { CustomTimeLine } from './custom-time-line';
 import { isDefaultPriceScale } from './default-price-scale';
 import { FirstValue } from './iprice-data-source';
 import { Pane } from './pane';
@@ -105,6 +106,7 @@ export class Series<T extends SeriesType = SeriesType> extends PriceDataSource i
 	private _formatter!: IPriceFormatter;
 	private readonly _priceLineView: SeriesPriceLinePaneView = new SeriesPriceLinePaneView(this);
 	private readonly _customPriceLines: CustomPriceLine[] = [];
+	private _customTimeLines: CustomTimeLine[] = [];
 	private readonly _baseHorizontalLineView: SeriesHorizontalBaseLinePaneView = new SeriesHorizontalBaseLinePaneView(this);
 	private _paneView!: IUpdatablePaneView;
 	private readonly _lastPriceAnimationPaneView: SeriesLastPriceAnimationPaneView | null = null;
@@ -321,6 +323,10 @@ export class Series<T extends SeriesType = SeriesType> extends PriceDataSource i
 		this.model().updateSource(this);
 	}
 
+	public updateTimeLine(lines: CustomTimeLine[]): void {
+		this._customTimeLines = lines;
+	}
+
 	public seriesType(): T {
 		return this._seriesType;
 	}
@@ -399,6 +405,10 @@ export class Series<T extends SeriesType = SeriesType> extends PriceDataSource i
 			res.push(...customPriceLine.paneViews());
 		}
 
+		for (const customPriceLine of this._customTimeLines) {
+			res.push(...customPriceLine.paneViews());
+		}
+
 		res.push(
 			this._paneView,
 			this._priceLineView,
@@ -450,6 +460,10 @@ export class Series<T extends SeriesType = SeriesType> extends PriceDataSource i
 
 		for (const customPriceLine of this._customPriceLines) {
 			customPriceLine.update();
+		}
+
+		for (const customTimeLine of this._customTimeLines) {
+			customTimeLine.update();
 		}
 
 		this._priceLineView.update();
@@ -513,7 +527,7 @@ export class Series<T extends SeriesType = SeriesType> extends PriceDataSource i
 			range = range !== null ? range.merge(rangeWithBase) : rangeWithBase;
 		}
 
-		return new AutoscaleInfoImpl(range,	this._markersPaneView.autoScaleMargins());
+		return new AutoscaleInfoImpl(range, this._markersPaneView.autoScaleMargins());
 	}
 
 	private _markerRadius(): number {
